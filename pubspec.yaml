@@ -1,0 +1,19 @@
+name: swipe_card
+description: A Flutter plugin to create a stack of boolean swipe cards with gesture, animation and callbacks.
+version: 0.0.1
+author: Magno Castro Moraes
+homepage: 
+
+environment:
+  sdk: ">=2.1.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+
