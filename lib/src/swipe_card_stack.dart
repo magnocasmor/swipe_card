@@ -9,8 +9,8 @@ class SwipeCardStack<T> extends StatefulWidget {
   final double height;
   final double width;
   final Color backgroundColor;
-  final List<SwipeCardItem> children;
   final SwipeCardController<T> swipeController;
+  final List<SwipeCardItem> children;
   final Widget correctIndicator;
   final Widget incorrectIndicator;
 
@@ -31,7 +31,6 @@ class SwipeCardStack<T> extends StatefulWidget {
 
 class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     with TickerProviderStateMixin {
-  final _stackKey = GlobalKey();
   SwipeCardAnimationMetrics _metrics;
 
   void initState() {
@@ -57,14 +56,13 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
             child: Stack(
               overflow: Overflow.visible,
               fit: StackFit.expand,
-              key: _stackKey,
               children: widget.children.reversed
                   .map(
                     (swiperCard) {
                       return swiperCard == widget.children.last
-                          ? _buildTopCard(
+                          ? _buildCard(
                               widget.swipeController.currentCard = swiperCard)
-                          : _buildHideCard(swiperCard);
+                          : _buildDeck(swiperCard);
                     },
                   )
                   .toList()
@@ -93,7 +91,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     widget.swipeController.removeCardAndUpdateDeck();
   }
 
-  Widget _buildHideCard(SwipeCardItem swiperCard) {
+  Widget _buildDeck(SwipeCardItem swiperCard) {
     return SlideTransition(
       position: _metrics.deckAnimatedPosition(),
       child: ScaleTransition(
@@ -105,7 +103,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     );
   }
 
-  Widget _buildTopCard(SwipeCardItem child) {
+  Widget _buildCard(SwipeCardItem child) {
     widget.swipeController.currentCard = child;
     return Transform.translate(
       offset: _metrics.currentCardPosition,
@@ -142,7 +140,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
         },
         onPanEnd: (DragEndDetails details) {
           final cardRenderBox =
-              _stackKey.currentContext.findRenderObject() as RenderBox;
+              _key.currentContext.findRenderObject() as RenderBox;
           final cardSize = cardRenderBox.size;
           final listener = () {
             setState(() {

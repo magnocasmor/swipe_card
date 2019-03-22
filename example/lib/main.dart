@@ -10,6 +10,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
           title: Text('Swipe Card Example'),
@@ -77,18 +78,14 @@ class SwipeCardExample extends StatelessWidget {
                   Icons.check,
                   color: Colors.green,
                 ),
-                onPressed: () {
-                  swipeController.acceptCard();
-                },
+                onPressed: swipeController.acceptCard,
               ),
               IconButton(
                 icon: Icon(
-                  Icons.close,
+                  Icons.clear,
                   color: Colors.red,
                 ),
-                onPressed: () {
-                  swipeController.rejectCard();
-                },
+                onPressed: swipeController.rejectCard,
               ),
             ],
           ),
