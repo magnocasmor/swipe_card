@@ -11,6 +11,8 @@ class SwipeCardStack<T> extends StatefulWidget {
   final Color backgroundColor;
   final List<SwipeCardItem> children;
   final SwipeCardController<T> swipeController;
+  final Widget correctIndicator;
+  final Widget incorrectIndicator;
 
   SwipeCardStack({
     this.height,
@@ -18,6 +20,8 @@ class SwipeCardStack<T> extends StatefulWidget {
     this.backgroundColor,
     this.children = const <SwipeCardItem>[],
     SwipeCardController swipeCardController,
+    this.correctIndicator,
+    this.incorrectIndicator,
   })  : assert(children != null),
         this.swipeController = swipeCardController ?? SwipeCardController<T>(),
         super(key: _key);
@@ -112,11 +116,19 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     );
   }
 
-  Widget _createContentCard(SwipeCardItem swiperCard) => Container(
-        width: widget.width,
-        height: widget.height,
-        child: swiperCard,
-      );
+  double _calcOpacity() {
+    double opacity = (_metrics.currentCardPosition.dx * .01).abs();
+    if (opacity >= 1.0) opacity = 1.0;
+    return opacity;
+  }
+
+  Widget _createContentCard(SwipeCardItem swiperCard) {
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      child: swiperCard,
+    );
+  }
 
   Widget _createGestureCard(SwipeCardItem swiperCard) => GestureDetector(
         onPanStart: (DragStartDetails _) {
@@ -151,6 +163,32 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
             }, listener);
           }
         },
-        child: _createContentCard(swiperCard),
+        child: Stack(
+          children: <Widget>[
+            _createContentCard(swiperCard),
+            Positioned(
+              top: widget.height != null ? widget.height * .03 : 30.0,
+              left: widget.width != null ? widget.width * .03 : 30.0,
+              child: Opacity(
+                opacity: (_metrics.currentCardPosition.dx >
+                        (widget.width != null ? widget.width * 0.3 : 50))
+                    ? _calcOpacity()
+                    : 0.0,
+                child: widget.correctIndicator,
+              ),
+            ),
+            Positioned(
+              top: widget.height != null ? widget.height * .03 : 30.0,
+              right: widget.width != null ? widget.width * .03 : 30.0,
+              child: Opacity(
+                opacity: (_metrics.currentCardPosition.dx <
+                        (widget.width != null ? -widget.width * 0.3 : -50))
+                    ? _calcOpacity()
+                    : 0.0,
+                child: widget.incorrectIndicator,
+              ),
+            ),
+          ],
+        ),
       );
 }

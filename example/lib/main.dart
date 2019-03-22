@@ -54,6 +54,16 @@ class SwipeCardExample extends StatelessWidget {
                             .withOpacity(1.0)),
                   ),
             ),
+            correctIndicator: Icon(
+              Icons.person,
+              color: Colors.green,
+              size: 48.0,
+            ),
+            incorrectIndicator: Icon(
+              Icons.remove_circle,
+              color: Colors.red,
+              size: 48.0,
+            ),
           ),
         ),
         Flexible(
