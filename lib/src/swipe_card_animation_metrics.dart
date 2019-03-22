@@ -95,7 +95,7 @@ class SwipeCardAnimationMetrics {
     final targetPosition = _currentCardPosition.translate(
         2 * _currentCardPosition.dx + targetOffset.dx,
         2 * _currentCardPosition.dy +
-            targetOffset.dy); //details.velocity.pixelsPerSecond;
+            targetOffset.dy);
     _initCardAnimation(500, targetPosition, Curves.linear);
     _cardAnimation.addStatusListener(statusListener);
     _cardAnimation.addListener(listener);

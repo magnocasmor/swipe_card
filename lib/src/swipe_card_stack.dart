@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:swipe_card/src/swipe_card_animation_metrics.dart';
-import 'package:swipe_card/src/swipe_card_controller.dart';
 import 'package:swipe_card/src/swipe_card_item.dart';
 
 final _key = GlobalKey<State<SwipeCardStack>>();
@@ -9,10 +8,13 @@ class SwipeCardStack<T> extends StatefulWidget {
   final double height;
   final double width;
   final Color backgroundColor;
-  final SwipeCardController<T> swipeController;
+  final SwipeCardController swipeController;
   final List<SwipeCardItem> children;
   final Widget correctIndicator;
   final Widget incorrectIndicator;
+  final Function(T) onAccepted;
+  final Function(T) onRejected;
+  final VoidCallback onCompleted;
 
   SwipeCardStack({
     this.height,
@@ -22,8 +24,11 @@ class SwipeCardStack<T> extends StatefulWidget {
     SwipeCardController swipeCardController,
     this.correctIndicator,
     this.incorrectIndicator,
+    this.onAccepted,
+    this.onRejected,
+    this.onCompleted,
   })  : assert(children != null),
-        this.swipeController = swipeCardController ?? SwipeCardController<T>(),
+        this.swipeController = swipeCardController ?? SwipeCardController(),
         super(key: _key);
 
   _SwipeCardStackState createState() => _SwipeCardStackState<T>();
@@ -36,7 +41,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   void initState() {
     super.initState();
     _metrics = SwipeCardAnimationMetrics(this);
-    widget.swipeController.initController(_key, _metrics, widget.children);
+    widget.swipeController
+        .initController(widget.key, _metrics, widget.children);
     _metrics.initCardAnimationParameters();
     _metrics.animateDeck(SwipeCardAnimate.FORWARD);
   }
@@ -81,14 +87,18 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     super.dispose();
   }
 
-  void _onAcceptedCard(SwipeCardItem swiperCard) {
-    widget.swipeController.onAccepted(swiperCard.value);
+  void onAcceptedCard(SwipeCardItem swiperCard) {
+    widget.onAccepted(swiperCard.value);
     widget.swipeController.removeCardAndUpdateDeck();
   }
 
-  void _onRejectedCard(SwipeCardItem swiperCard) {
-    widget.swipeController.onRejected(swiperCard.value);
+  void onRejectedCard(SwipeCardItem swiperCard) {
+    widget.onRejected(swiperCard.value);
     widget.swipeController.removeCardAndUpdateDeck();
+  }
+
+  void onCompleted() {
+    widget.onCompleted();
   }
 
   Widget _buildDeck(SwipeCardItem swiperCard) {
@@ -154,9 +164,9 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
                 (status) {
               if (status == AnimationStatus.completed) {
                 if (_metrics.currentCardPosition.dx > 0)
-                  _onAcceptedCard(swiperCard);
+                  onAcceptedCard(swiperCard);
                 else
-                  _onRejectedCard(swiperCard);
+                  onRejectedCard(swiperCard);
               }
             }, listener);
           }
@@ -189,4 +199,60 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
           ],
         ),
       );
+}
+
+class SwipeCardController {
+  SwipeCardAnimationMetrics _metrics;
+  GlobalKey<State<SwipeCardStack>> _swiperStateKey;
+  List<SwipeCardItem> _children;
+  SwipeCardItem _currentCard;
+
+  void initController(GlobalKey<State<SwipeCardStack>> key,
+      SwipeCardAnimationMetrics metrics, List<SwipeCardItem> children) {
+    this._swiperStateKey = key;
+    this._metrics = metrics;
+    this._children = children;
+  }
+
+  set currentCard(SwipeCardItem currentCard) => _currentCard = currentCard;
+
+  void acceptCard() {
+    _metrics.initCardAnimationParameters();
+    _metrics.animateDeck(SwipeCardAnimate.REVERSE);
+    _metrics.animateCardSwipe(Offset(1000.0, -100), (status) {
+      if (status == AnimationStatus.completed) {
+        (_swiperStateKey.currentState as _SwipeCardStackState)
+            .onAcceptedCard(_currentCard);
+      }
+    }, () {
+      _swiperStateKey.currentState.setState(() {
+        _metrics.updateCardPositionAndRotate();
+      });
+    });
+  }
+
+  void rejectCard() {
+    _metrics.initCardAnimationParameters();
+    _metrics.animateDeck(SwipeCardAnimate.REVERSE);
+    _metrics.animateCardSwipe(Offset(-1000.0, -100), (status) {
+      if (status == AnimationStatus.completed) {
+        (_swiperStateKey.currentState as _SwipeCardStackState)
+            .onRejectedCard(_currentCard);
+      }
+    }, () {
+      _swiperStateKey.currentState.setState(() {
+        _metrics.updateCardPositionAndRotate();
+      });
+    });
+  }
+
+  void removeCardAndUpdateDeck() {
+    _swiperStateKey.currentState.setState(() {
+      _children.remove(_currentCard);
+      _currentCard = null;
+      (_swiperStateKey.currentState as _SwipeCardStackState).onCompleted();
+      _metrics.animateDeck(SwipeCardAnimate.FORWARD, from: 1.0);
+      _metrics.initCardAnimationParameters();
+    });
+  }
 }

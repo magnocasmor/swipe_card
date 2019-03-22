@@ -22,17 +22,7 @@ class App extends StatelessWidget {
 }
 
 class SwipeCardExample extends StatelessWidget {
-  final swipeController = SwipeCardController<int>(
-    onAccepted: (int value) {
-      print('Accepted card value = $value');
-    },
-    onRejected: (int value) {
-      print('rejected card value = $value');
-    },
-    onCompleted: () {
-      print('Swipe Completed');
-    },
-  );
+  final swipeController = SwipeCardController();
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +45,15 @@ class SwipeCardExample extends StatelessWidget {
                             .withOpacity(1.0)),
                   ),
             ),
+            onAccepted: (int value) {
+              print('Accepted card value = $value');
+            },
+            onRejected: (int value) {
+              print('rejected card value = $value');
+            },
+            onCompleted: () {
+              print('Swipe Completed');
+            },
             correctIndicator: Icon(
               Icons.person,
               color: Colors.green,
