@@ -32,7 +32,7 @@ class SwipeCardExample extends StatelessWidget {
         Expanded(
           flex: 8,
           child: SwipeCardStack<int>(
-            swipeCardController: swipeController,
+            swipeController: swipeController,
             children: List<SwipeCardItem<int>>.generate(
               10,
               (int index) => SwipeCardItem<int>(
