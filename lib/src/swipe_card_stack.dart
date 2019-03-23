@@ -342,7 +342,7 @@ class _SwipeCardAnimationMetrics {
     _cardAnimation.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         initCardAnimationParameters();
-        _initCardAnimation(150, Offset(dxFeedback, 0.0), Curves.easeInQuint);
+        _initCardAnimation(150, Offset(dxFeedback, 0.0), Curves.linear);
         _cardAnimation.addListener(updateCardPositionAndRotation);
         _cardAnimation.addStatusListener((status) {
           if (status == AnimationStatus.completed) {
