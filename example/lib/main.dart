@@ -38,7 +38,7 @@ class SwipeCardExample extends StatelessWidget {
       child: SwipeCardStack<int>(
         swipeController: swipeController,
         children: List<SwipeCardItem<int>>.generate(
-          10,
+          5,
           (int index) => SwipeCardItem<int>(
             value: index,
             child: Container(
@@ -57,6 +57,11 @@ class SwipeCardExample extends StatelessWidget {
               ),
             ),
           ),
+        ),
+        completedWidget: Container(
+          color: Colors.grey,
+          child:
+              Center(child: Text('Clique em alguma imagem se quiser corrigir')),
         ),
         rejectButton: FlatButton(
           padding: EdgeInsets.all(24.0),
@@ -81,7 +86,7 @@ class SwipeCardExample extends StatelessWidget {
           print('Accepted card value = $value');
         },
         onRejected: (int value) {
-          print('rejected card value = $value');
+          print('Rejected card value = $value');
         },
         onCompleted: () {
           print('Swipe Completed');

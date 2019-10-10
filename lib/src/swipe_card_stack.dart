@@ -16,6 +16,7 @@ class SwipeCardStack<T> extends StatefulWidget {
   final int deckCardsVisible;
   final SwipeCardController swipeController;
   final List<SwipeCardItem> children;
+  final Widget completedWidget;
   final Widget acceptButton;
   final Widget rejectButton;
   final Widget correctIndicator;
@@ -33,6 +34,7 @@ class SwipeCardStack<T> extends StatefulWidget {
     this.deckCardsVisible = 2,
     this.children = const <SwipeCardItem>[],
     SwipeCardController swipeController,
+    this.completedWidget,
     this.acceptButton,
     this.rejectButton,
     this.correctIndicator,
@@ -61,20 +63,15 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   final _rejectedCards = <SwipeCardItem<T>>[];
 
-  AnimationController controller;
-
   void initState() {
     super.initState();
     _metrics = _SwipeCardAnimationMetrics(widget.deckCardsVisible);
 
     _metrics.initCardAnimationParameters();
 
-    _animateDeck(_SwipeCardAnimate.FORWARD);
+    _metrics.initRejectedAnimation();
 
-    controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
-    );
+    _animateDeck(_SwipeCardAnimate.FORWARD);
   }
 
   @override
@@ -82,10 +79,10 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
-        deck(),
-        decisionButton(),
-        acceptedFeedback(),
-        rejectedFeedback(),
+        _deck(),
+        _decisionButton(),
+        _acceptedFeedback(),
+        _rejectedFeedback(),
       ],
     );
   }
@@ -93,69 +90,80 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   @override
   void dispose() {
     _metrics.animationsDispose();
-    controller.dispose();
+
     super.dispose();
   }
 
-  Widget deck() {
+  Widget _deck() {
     return Expanded(
       child: StatefulBuilder(
         key: _stackKey,
-        builder: (context, _) {
+        builder: (_, __) {
           _metrics.initDeckAnimationParameters();
           return Stack(
             overflow: Overflow.visible,
             fit: StackFit.passthrough,
-            children: widget.children.reversed
-                .map(
-                  (swiperCard) {
-                    return swiperCard == widget.children.last
-                        ? _buildCard(swiperCard)
-                        : _buildDeck(swiperCard);
-                  },
-                )
-                .toList()
-                .reversed
-                .toList(),
+            children: [
+              if (widget.completedWidget is Widget)
+                Positioned.fill(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 250),
+                    opacity: widget.children.isEmpty ? 1.0 : 0.0,
+                    child: widget.completedWidget,
+                  ),
+                ),
+              ...widget.children.reversed
+                  .map(
+                    (swiperCard) {
+                      return swiperCard == widget.children.last
+                          ? _buildCard(swiperCard)
+                          : _buildDeck(swiperCard);
+                    },
+                  )
+                  .toList()
+                  .reversed
+                  .toList(),
+            ],
           );
         },
       ),
     );
   }
 
-  Widget decisionButton() {
+  Widget _decisionButton() {
     return Padding(
       padding: const EdgeInsets.all(32.0),
-      child: (widget.rejectButton is Widget && widget.acceptButton is Widget)
-          ? Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              mainAxisSize: MainAxisSize.max,
-              children: <Widget>[
-                widget.rejectButton,
-                widget.acceptButton,
-              ],
-            )
-          : Container(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisSize: MainAxisSize.max,
+        children: <Widget>[
+          if (widget.rejectButton is Widget &&
+              widget.acceptButton is Widget) ...[
+            widget.rejectButton,
+            widget.acceptButton,
+          ]
+        ],
+      ),
     );
   }
 
-  Widget acceptedFeedback() {
-    return feedbackContainer(
+  Widget _acceptedFeedback() {
+    return _feedbackContainer(
       _acceptedCards,
       _acceptedListKey,
       _FeedbackType.CORRECT,
     );
   }
 
-  Widget rejectedFeedback() {
+  Widget _rejectedFeedback() {
     return SlideTransition(
-      position: controller.drive(
+      position: _metrics._rejectedSlideController.drive(
         Tween(
           begin: Offset.zero,
           end: Offset(0.0, -1.0),
         ),
       ),
-      child: feedbackContainer(
+      child: _feedbackContainer(
         _rejectedCards,
         _rejectedListKey,
         _FeedbackType.INCORRECT,
@@ -163,7 +171,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     );
   }
 
-  Widget feedbackContainer(
+  Widget _feedbackContainer(
     List<SwipeCardItem<T>> swipedCards,
     GlobalKey<AnimatedListState> listKey,
     _FeedbackType type,
@@ -173,14 +181,14 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          swipedCardList(listKey, swipedCards, type),
-          feedbackIndicator(type, swipedCards),
+          _swipedCardList(listKey, swipedCards, type),
+          _feedbackIndicator(type, swipedCards),
         ],
       ),
     );
   }
 
-  Widget feedbackIndicator(
+  Widget _feedbackIndicator(
     _FeedbackType type,
     List<SwipeCardItem> swipedCards,
   ) {
@@ -210,19 +218,26 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     );
   }
 
-  Widget swipedCardList(
+  Widget _swipedCardList(
     GlobalKey<AnimatedListState> listKey,
     List<SwipeCardItem> swipedCards,
     _FeedbackType type,
   ) {
+    // final scrollController = ScrollController();
     return Flexible(
       child: AnimatedList(
         key: listKey,
         shrinkWrap: true,
+        // controller: scrollController,
         physics: BouncingScrollPhysics(),
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index, animation) {
-          return swipedCardItem(
+          // scrollController.animateTo(
+          //   index * widget.feedbackWidth,
+          //   duration: const Duration(milliseconds: 250),
+          //   curve: Curves.linear,
+          // );
+          return _swipedCardItem(
             animation,
             swipedCards,
             InkWell(
@@ -231,12 +246,24 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
                 final item = swipedCards.removeAt(index);
 
                 final reverseAnimationDuration =
-                    const Duration(milliseconds: 500);
+                    const Duration(milliseconds: 250);
 
                 listKey.currentState.removeItem(
                   index,
                   (context, reverseAnimation) {
-                    return swipedCardItem(
+                    reverseAnimation.addListener(() async {
+                      if (reverseAnimation.isDismissed) {
+                        _metrics.animateFeedbackIndicator(
+                            type, _SwipeCardAnimate.REVERSE);
+
+                        await Future.delayed(reverseAnimationDuration);
+
+                        _addOnDeckAndUpdate(item, type);
+
+                        animateRejectedFeedback();
+                      }
+                    });
+                    return _swipedCardItem(
                       reverseAnimation,
                       swipedCards,
                       item,
@@ -244,12 +271,6 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
                   },
                   duration: reverseAnimationDuration,
                 );
-
-                Future.delayed(reverseAnimationDuration, () {
-                  _addOnDeckAndUpdate(item, type);
-                  _metrics.animateFeedbackIndicator(
-                      type, _SwipeCardAnimate.REVERSE);
-                });
               },
             ),
           );
@@ -258,7 +279,17 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     );
   }
 
-  Widget swipedCardItem(
+  Future<void> animateRejectedFeedback() async {
+    if (_acceptedCards.isEmpty) {
+      await _metrics.animateRejectedSlide(_SwipeCardAnimate.FORWARD);
+    } else if (_rejectedCards.isNotEmpty) {
+      await _metrics.animateRejectedSlide(_SwipeCardAnimate.REVERSE);
+    } else {
+      _metrics.resetRejectedSlideAnimation();
+    }
+  }
+
+  Widget _swipedCardItem(
     Animation<double> animation,
     List<SwipeCardItem> swipedCards,
     Widget content,
@@ -289,31 +320,41 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   void _onAcceptedCard(SwipeCardItem swipedCard) {
     if (widget.onAccepted != null) widget.onAccepted(swipedCard.value);
-    if (_acceptedCards.isEmpty) controller.reverse();
+
     _acceptedCards.add(swipedCard);
-    _acceptedListKey.currentState.insertItem(
-      _acceptedCards.indexOf(swipedCard),
-      duration: const Duration(milliseconds: 250),
-    );
+
+    animateRejectedFeedback().whenComplete(() {
+      _acceptedListKey.currentState.insertItem(
+        _acceptedCards.indexOf(swipedCard),
+        duration: const Duration(milliseconds: 250),
+      );
+    });
+
     _metrics.animateFeedbackIndicator(
       _FeedbackType.CORRECT,
       _SwipeCardAnimate.FORWARD,
     );
+
     _removeFromDeckAndUpdate(swipedCard);
   }
 
   void _onRejectedCard(SwipeCardItem swipedCard) {
     if (widget.onRejected != null) widget.onRejected(swipedCard.value);
-    if (_acceptedCards.isEmpty) controller.forward();
+
     _rejectedCards.add(swipedCard);
-    _rejectedListKey.currentState.insertItem(
-      _rejectedCards.length - 1,
-      duration: const Duration(milliseconds: 250),
-    );
+
+    animateRejectedFeedback().whenComplete(() {
+      _rejectedListKey.currentState.insertItem(
+        _rejectedCards.length - 1,
+        duration: const Duration(milliseconds: 250),
+      );
+    });
+
     _metrics.animateFeedbackIndicator(
       _FeedbackType.INCORRECT,
       _SwipeCardAnimate.FORWARD,
     );
+
     _removeFromDeckAndUpdate(swipedCard);
   }
 
@@ -324,19 +365,25 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   void _removeFromDeckAndUpdate(SwipeCardItem swiperCard) {
     _stackKey.currentState.setState(() {
       widget.children.remove(swiperCard);
+
       if (widget.children.isEmpty) _onCompleted();
+
       widget.swipeController.currentCard = null;
+
       _animateDeck(_SwipeCardAnimate.FORWARD, from: 1.0);
+
       _metrics.initCardAnimationParameters();
     });
   }
 
   void _addOnDeckAndUpdate(SwipeCardItem swiperCard, _FeedbackType type) {
-    if (_acceptedCards.isEmpty) controller.forward();
     _stackKey.currentState.setState(() {
       widget.children.add(swiperCard);
+
       widget.swipeController.currentCard = null;
+
       _animateDeck(_SwipeCardAnimate.FORWARD, from: 0.0);
+
       _metrics.initReverseCardAnimationParameters(type);
     });
   }
@@ -382,61 +429,63 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     );
   }
 
-  Widget _createGestureCard(SwipeCardItem swiperCard) => GestureDetector(
-        onPanStart: (DragStartDetails _) {
-          _metrics.animateDeck(_SwipeCardAnimate.REVERSE);
-        },
-        onPanUpdate: (DragUpdateDetails details) {
-          _metrics.resetCardAnimation();
-          _metrics.updateCardPositionAndRotation(delta: details.delta);
-        },
-        onPanEnd: (DragEndDetails details) {
-          if (_metrics.currentCardPosition == Offset.zero) {
-            return _metrics.animateCardOnSwipeStartFeedback();
-          }
-          final cardRenderBox = context.findRenderObject() as RenderBox;
-          final cardSize = cardRenderBox.size;
-          final listener = _metrics.updateCardPositionAndRotation;
-          if (_metrics.isCardInsideEdges(cardSize.width)) {
-            _metrics.animateCardReturn(listener);
-            _animateDeck(_SwipeCardAnimate.FORWARD);
-          } else {
-            if (_metrics.currentCardPosition.dx > 0)
-              widget.swipeController
-                  .acceptCard(targetOffset: details.velocity.pixelsPerSecond);
-            else
-              widget.swipeController
-                  .rejectCard(targetOffset: details.velocity.pixelsPerSecond);
-          }
-        },
-        child: Stack(
-          children: <Widget>[
-            _createContentCard(swiperCard),
-            Positioned(
-              top: widget.height != null ? widget.height * .03 : 30.0,
-              left: widget.width != null ? widget.width * .03 : 30.0,
-              child: Opacity(
-                opacity: (_metrics.currentCardPosition.dx >
-                        (widget.width != null ? widget.width * 0.3 : 50))
-                    ? _calcOpacity()
-                    : 0.0,
-                child: widget.correctIndicator,
-              ),
+  Widget _createGestureCard(SwipeCardItem swiperCard) {
+    return GestureDetector(
+      onPanStart: (DragStartDetails _) {
+        _metrics.animateDeck(_SwipeCardAnimate.REVERSE);
+      },
+      onPanUpdate: (DragUpdateDetails details) {
+        _metrics.resetCardAnimation();
+        _metrics.updateCardPositionAndRotation(delta: details.delta);
+      },
+      onPanEnd: (DragEndDetails details) {
+        if (_metrics.currentCardPosition == Offset.zero) {
+          return _metrics.animateCardOnSwipeStartFeedback();
+        }
+        final cardRenderBox = context.findRenderObject() as RenderBox;
+        final cardSize = cardRenderBox.size;
+        final listener = _metrics.updateCardPositionAndRotation;
+        if (_metrics.isCardInsideEdges(cardSize.width)) {
+          _metrics.animateCardReturn(listener);
+          _animateDeck(_SwipeCardAnimate.FORWARD);
+        } else {
+          if (_metrics.currentCardPosition.dx > 0)
+            widget.swipeController
+                .acceptCard(targetOffset: details.velocity.pixelsPerSecond);
+          else
+            widget.swipeController
+                .rejectCard(targetOffset: details.velocity.pixelsPerSecond);
+        }
+      },
+      child: Stack(
+        children: <Widget>[
+          _createContentCard(swiperCard),
+          Positioned(
+            top: widget.height != null ? widget.height * .03 : 30.0,
+            left: widget.width != null ? widget.width * .03 : 30.0,
+            child: Opacity(
+              opacity: (_metrics.currentCardPosition.dx >
+                      (widget.width != null ? widget.width * 0.3 : 50))
+                  ? _calcOpacity()
+                  : 0.0,
+              child: widget.correctIndicator,
             ),
-            Positioned(
-              top: widget.height != null ? widget.height * .03 : 30.0,
-              right: widget.width != null ? widget.width * .03 : 30.0,
-              child: Opacity(
-                opacity: (_metrics.currentCardPosition.dx <
-                        (widget.width != null ? -widget.width * 0.3 : -50))
-                    ? _calcOpacity()
-                    : 0.0,
-                child: widget.incorrectIndicator,
-              ),
+          ),
+          Positioned(
+            top: widget.height != null ? widget.height * .03 : 30.0,
+            right: widget.width != null ? widget.width * .03 : 30.0,
+            child: Opacity(
+              opacity: (_metrics.currentCardPosition.dx <
+                      (widget.width != null ? -widget.width * 0.3 : -50))
+                  ? _calcOpacity()
+                  : 0.0,
+              child: widget.incorrectIndicator,
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 
   void animateCardSwipe(Offset targetOffset, Function statusListener) {
     _metrics.animateCardSwipe(
@@ -491,6 +540,7 @@ class _SwipeCardAnimationMetrics {
   AnimationController _deckAnimationController;
   AnimationController _acceptedIndicatorController;
   AnimationController _rejectedIndicatorController;
+  AnimationController _rejectedSlideController;
   Animation<Offset> _cardAnimation;
   Offset currentCardPosition;
   Offset _deckPosition;
@@ -504,6 +554,13 @@ class _SwipeCardAnimationMetrics {
   void initCardAnimationParameters() {
     currentCardPosition = Offset.zero;
     _cardAngle = 0.0;
+  }
+
+  void initRejectedAnimation() {
+    _rejectedSlideController = AnimationController(
+      vsync: _globalKey.currentState,
+      duration: const Duration(milliseconds: 250),
+    );
   }
 
   void initReverseCardAnimationParameters(_FeedbackType type) {
@@ -616,7 +673,6 @@ class _SwipeCardAnimationMetrics {
   void animateCardReturn(VoidCallback listener) {
     if (isAnimationControllerBusy(_cardAnimationController)) return;
     _initCardAnimation(1000, Offset.zero, Curves.elasticOut);
-    _initDeckAnimation();
     _cardAnimation.addListener(listener);
     _cardAnimationController.forward();
   }
@@ -643,11 +699,22 @@ class _SwipeCardAnimationMetrics {
     feedbackController.reset();
   }
 
+  Future<void> animateRejectedSlide(_SwipeCardAnimate animate) async {
+    if (animate == _SwipeCardAnimate.FORWARD)
+      await _rejectedSlideController.forward();
+    else
+      await _rejectedSlideController.reverse();
+  }
+
   void resetCardAnimation() {
     if (isAnimationControllerBusy(_cardAnimationController)) {
       _cardAnimationController.reset();
       initCardAnimationParameters();
     }
+  }
+
+  void resetRejectedSlideAnimation() {
+    _rejectedSlideController.reset();
   }
 
   void updateCardPositionAndRotation({Offset delta}) {
@@ -679,13 +746,20 @@ class _SwipeCardAnimationMetrics {
         _cardAnimationController?.status == AnimationStatus.reverse)
       _cardAnimationController.reset();
     _cardAnimationController?.dispose();
+
     if (_deckAnimationController?.status == AnimationStatus.forward ||
         _deckAnimationController?.status == AnimationStatus.reverse)
       _deckAnimationController.reset();
     _deckAnimationController?.dispose();
+
     if (_acceptedIndicatorController?.status == AnimationStatus.forward ||
         _acceptedIndicatorController?.status == AnimationStatus.reverse)
       _acceptedIndicatorController.reset();
     _acceptedIndicatorController?.dispose();
+
+    if (_rejectedSlideController?.status == AnimationStatus.forward ||
+        _rejectedSlideController?.status == AnimationStatus.reverse)
+      _rejectedSlideController.reset();
+    _rejectedSlideController?.dispose();
   }
 }
