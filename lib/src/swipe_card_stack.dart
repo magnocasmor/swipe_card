@@ -82,48 +82,10 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
-        Expanded(
-          child: StatefulBuilder(
-            key: _stackKey,
-            builder: (context, _) {
-              _metrics.initDeckAnimationParameters();
-              return Stack(
-                overflow: Overflow.visible,
-                fit: StackFit.passthrough,
-                children: widget.children.reversed
-                    .map(
-                      (swiperCard) {
-                        return swiperCard == widget.children.last
-                            ? _buildCard(swiperCard)
-                            : _buildDeck(swiperCard);
-                      },
-                    )
-                    .toList()
-                    .reversed
-                    .toList(),
-              );
-            },
-          ),
-        ),
+        deck(),
         decisionButton(),
-        swipedCardsFeedback(
-          _acceptedCards,
-          _acceptedListKey,
-          _FeedbackType.CORRECT,
-        ),
-        SlideTransition(
-          position: controller.drive(
-            Tween(
-              begin: Offset.zero,
-              end: Offset(0.0, -1.0),
-            ),
-          ),
-          child: swipedCardsFeedback(
-            _rejectedCards,
-            _rejectedListKey,
-            _FeedbackType.INCORRECT,
-          ),
-        ),
+        acceptedFeedback(),
+        rejectedFeedback(),
       ],
     );
   }
@@ -131,7 +93,191 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   @override
   void dispose() {
     _metrics.animationsDispose();
+    controller.dispose();
     super.dispose();
+  }
+
+  Widget deck() {
+    return Expanded(
+      child: StatefulBuilder(
+        key: _stackKey,
+        builder: (context, _) {
+          _metrics.initDeckAnimationParameters();
+          return Stack(
+            overflow: Overflow.visible,
+            fit: StackFit.passthrough,
+            children: widget.children.reversed
+                .map(
+                  (swiperCard) {
+                    return swiperCard == widget.children.last
+                        ? _buildCard(swiperCard)
+                        : _buildDeck(swiperCard);
+                  },
+                )
+                .toList()
+                .reversed
+                .toList(),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget decisionButton() {
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: (widget.rejectButton is Widget && widget.acceptButton is Widget)
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisSize: MainAxisSize.max,
+              children: <Widget>[
+                widget.rejectButton,
+                widget.acceptButton,
+              ],
+            )
+          : Container(),
+    );
+  }
+
+  Widget acceptedFeedback() {
+    return feedbackContainer(
+      _acceptedCards,
+      _acceptedListKey,
+      _FeedbackType.CORRECT,
+    );
+  }
+
+  Widget rejectedFeedback() {
+    return SlideTransition(
+      position: controller.drive(
+        Tween(
+          begin: Offset.zero,
+          end: Offset(0.0, -1.0),
+        ),
+      ),
+      child: feedbackContainer(
+        _rejectedCards,
+        _rejectedListKey,
+        _FeedbackType.INCORRECT,
+      ),
+    );
+  }
+
+  Widget feedbackContainer(
+    List<SwipeCardItem<T>> swipedCards,
+    GlobalKey<AnimatedListState> listKey,
+    _FeedbackType type,
+  ) {
+    return SizedBox(
+      height: widget.feedbackHeight + 24.0 + 5.0,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          swipedCardList(listKey, swipedCards, type),
+          feedbackIndicator(type, swipedCards),
+        ],
+      ),
+    );
+  }
+
+  Widget feedbackIndicator(
+    _FeedbackType type,
+    List<SwipeCardItem> swipedCards,
+  ) {
+    return AnimatedBuilder(
+      animation: type == _FeedbackType.CORRECT
+          ? _metrics._initAcceptedFeedbackIndicatorAnimation()
+          : _metrics._initRejectedFeedbackIndicatorAnimation(),
+      builder: (_, __) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(36.0),
+            color: type == _FeedbackType.CORRECT ? Colors.green : Colors.red,
+          ),
+          margin: const EdgeInsets.only(
+            top: 8.0,
+            left: 16.0,
+            bottom: 16.0,
+            right: 16.0,
+          ),
+          height: 5.0,
+          width: swipedCards.length *
+                  (widget.feedbackWidth + widget.feedbackMargin * 2) +
+              (swipedCards.isNotEmpty ? 8.0 : 0.0),
+        );
+      },
+    );
+  }
+
+  Widget swipedCardList(
+    GlobalKey<AnimatedListState> listKey,
+    List<SwipeCardItem> swipedCards,
+    _FeedbackType type,
+  ) {
+    return Flexible(
+      child: AnimatedList(
+        key: listKey,
+        shrinkWrap: true,
+        physics: BouncingScrollPhysics(),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index, animation) {
+          return swipedCardItem(
+            animation,
+            swipedCards,
+            InkWell(
+              child: swipedCards[index],
+              onTap: () {
+                final item = swipedCards.removeAt(index);
+
+                final reverseAnimationDuration =
+                    const Duration(milliseconds: 500);
+
+                listKey.currentState.removeItem(
+                  index,
+                  (context, reverseAnimation) {
+                    return swipedCardItem(
+                      reverseAnimation,
+                      swipedCards,
+                      item,
+                    );
+                  },
+                  duration: reverseAnimationDuration,
+                );
+
+                Future.delayed(reverseAnimationDuration, () {
+                  _addOnDeckAndUpdate(item, type);
+                  _metrics.animateFeedbackIndicator(
+                      type, _SwipeCardAnimate.REVERSE);
+                });
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget swipedCardItem(
+    Animation<double> animation,
+    List<SwipeCardItem> swipedCards,
+    Widget content,
+  ) {
+    return ScaleTransition(
+      scale: animation.drive(
+        CurveTween(
+          curve: Curves.elasticOut,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: SizedBox(
+          height: widget.feedbackHeight,
+          width: widget.feedbackWidth,
+          child: content,
+        ),
+      ),
+    );
   }
 
   void _animateDeck(_SwipeCardAnimate animate, {double from}) {
@@ -296,125 +442,6 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     _metrics.animateCardSwipe(
       targetOffset,
       statusListener,
-    );
-  }
-
-  Widget swipedCardsFeedback(
-    List<SwipeCardItem<T>> swipedCards,
-    GlobalKey<AnimatedListState> listKey,
-    _FeedbackType type,
-  ) {
-    return SizedBox(
-      height: widget.feedbackHeight + 24.0 + 5.0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Flexible(
-            child: AnimatedList(
-              key: listKey,
-              shrinkWrap: true,
-              physics: BouncingScrollPhysics(),
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index, animation) {
-                // controller.forward().whenComplete(() {
-                //   controller.reset();
-                // });
-                return ScaleTransition(
-                  scale: animation.drive(
-                    CurveTween(
-                      curve: Curves.elasticOut,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: SizedBox(
-                      height: widget.feedbackHeight,
-                      width: widget.feedbackWidth,
-                      child: InkWell(
-                        child: swipedCards[index],
-                        onTap: () {
-                          final item = swipedCards.removeAt(index);
-
-                          final reverseAnimationDuration =
-                              const Duration(milliseconds: 500);
-
-                          listKey.currentState.removeItem(
-                            index,
-                            (context, reverseAnimation) {
-                              return ScaleTransition(
-                                scale: reverseAnimation.drive(
-                                  CurveTween(
-                                    curve: Curves.elasticOut,
-                                  ),
-                                ),
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 8.0),
-                                  height: widget.feedbackHeight,
-                                  width: widget.feedbackWidth,
-                                  child: item,
-                                ),
-                              );
-                            },
-                            duration: reverseAnimationDuration,
-                          );
-
-                          Future.delayed(reverseAnimationDuration, () {
-                            _addOnDeckAndUpdate(item, type);
-                            _metrics.animateFeedbackIndicator(
-                                type, _SwipeCardAnimate.REVERSE);
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          AnimatedBuilder(
-              animation: type == _FeedbackType.CORRECT
-                  ? _metrics._initAcceptedFeedbackIndicatorAnimation()
-                  : _metrics._initRejectedFeedbackIndicatorAnimation(),
-              builder: (_, __) {
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(36.0),
-                    color: type == _FeedbackType.CORRECT
-                        ? Colors.green
-                        : Colors.red,
-                  ),
-                  margin: const EdgeInsets.only(
-                    top: 8.0,
-                    left: 16.0,
-                    bottom: 16.0,
-                    right: 16.0,
-                  ),
-                  height: 5.0,
-                  width: swipedCards.length *
-                          (widget.feedbackWidth + widget.feedbackMargin * 2) +
-                      (swipedCards.isNotEmpty ? 8.0 : 0.0),
-                );
-              }),
-        ],
-      ),
-    );
-  }
-
-  Widget decisionButton() {
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: (widget.rejectButton is Widget && widget.acceptButton is Widget)
-          ? Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              mainAxisSize: MainAxisSize.max,
-              children: <Widget>[
-                widget.rejectButton,
-                widget.acceptButton,
-              ],
-            )
-          : Container(),
     );
   }
 }
