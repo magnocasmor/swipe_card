@@ -61,6 +61,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   final _rejectedCards = <SwipeCardItem<T>>[];
 
+  AnimationController controller;
+
   void initState() {
     super.initState();
     _metrics = _SwipeCardAnimationMetrics(widget.deckCardsVisible);
@@ -68,6 +70,11 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     _metrics.initCardAnimationParameters();
 
     _animateDeck(_SwipeCardAnimate.FORWARD);
+
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
   }
 
   @override
@@ -104,10 +111,18 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
           _acceptedListKey,
           _FeedbackType.CORRECT,
         ),
-        swipedCardsFeedback(
-          _rejectedCards,
-          _rejectedListKey,
-          _FeedbackType.INCORRECT,
+        SlideTransition(
+          position: controller.drive(
+            Tween(
+              begin: Offset.zero,
+              end: Offset(0.0, -1.0),
+            ),
+          ),
+          child: swipedCardsFeedback(
+            _rejectedCards,
+            _rejectedListKey,
+            _FeedbackType.INCORRECT,
+          ),
         ),
       ],
     );
@@ -128,10 +143,11 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   void _onAcceptedCard(SwipeCardItem swipedCard) {
     if (widget.onAccepted != null) widget.onAccepted(swipedCard.value);
+    if (_acceptedCards.isEmpty) controller.reverse();
     _acceptedCards.add(swipedCard);
     _acceptedListKey.currentState.insertItem(
-      _acceptedCards.length - 1,
-      duration: const Duration(milliseconds: 500),
+      _acceptedCards.indexOf(swipedCard),
+      duration: const Duration(milliseconds: 250),
     );
     _metrics.animateFeedbackIndicator(
       _FeedbackType.CORRECT,
@@ -142,10 +158,11 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   void _onRejectedCard(SwipeCardItem swipedCard) {
     if (widget.onRejected != null) widget.onRejected(swipedCard.value);
+    if (_acceptedCards.isEmpty) controller.forward();
     _rejectedCards.add(swipedCard);
     _rejectedListKey.currentState.insertItem(
       _rejectedCards.length - 1,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 250),
     );
     _metrics.animateFeedbackIndicator(
       _FeedbackType.INCORRECT,
@@ -169,6 +186,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   }
 
   void _addOnDeckAndUpdate(SwipeCardItem swiperCard, _FeedbackType type) {
+    if (_acceptedCards.isEmpty) controller.forward();
     _stackKey.currentState.setState(() {
       widget.children.add(swiperCard);
       widget.swipeController.currentCard = null;
@@ -492,7 +510,7 @@ class _SwipeCardAnimationMetrics {
   void _initDeckAnimation() {
     initDeckAnimationParameters();
     _deckAnimationController = AnimationController(
-      duration: Duration(milliseconds: 500),
+      duration: Duration(milliseconds: 250),
       vsync: _globalKey.currentState,
     );
   }
