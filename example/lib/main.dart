@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:swipe_card/swipe_card.dart';
+import 'package:flutter/scheduler.dart';
 
 void main() {
+  // timeDilation = 5.0;
   runApp(App());
 }
 
@@ -41,7 +43,8 @@ class SwipeCardExample extends StatelessWidget {
             value: index,
             child: Container(
               color: Color(
-                      (math.Random().nextDouble() * 255 * 0xFFFFFF).toInt() << 0)
+                      (math.Random().nextDouble() * 255 * 0xFFFFFF).toInt() <<
+                          0)
                   .withOpacity(1.0),
               child: Center(
                 child: Text(

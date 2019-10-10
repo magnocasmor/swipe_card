@@ -3,6 +3,8 @@ import 'package:swipe_card/src/swipe_card_item.dart';
 
 final _globalKey = GlobalKey<_SwipeCardStackState>();
 
+final _stackKey = GlobalKey<State<StatefulWidget>>();
+
 enum _FeedbackType { CORRECT, INCORRECT }
 
 class SwipeCardStack<T> extends StatefulWidget {
@@ -62,33 +64,38 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   void initState() {
     super.initState();
     _metrics = _SwipeCardAnimationMetrics(widget.deckCardsVisible);
+
     _metrics.initCardAnimationParameters();
+
     _animateDeck(_SwipeCardAnimate.FORWARD);
   }
 
   @override
   Widget build(BuildContext context) {
-    _metrics.initDeckAnimationParameters();
-
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
         Expanded(
-          child: Stack(
-            overflow: Overflow.visible,
-            fit: StackFit.passthrough,
-            children: widget.children.reversed
-                .map(
-                  (swiperCard) {
-                    return swiperCard == widget.children.last
-                        ? _buildCard(
-                            widget.swipeController.currentCard = swiperCard)
-                        : _buildDeck(swiperCard);
-                  },
-                )
-                .toList()
-                .reversed
-                .toList(),
+          child: StatefulBuilder(
+            key: _stackKey,
+            builder: (context, _) {
+              _metrics.initDeckAnimationParameters();
+              return Stack(
+                overflow: Overflow.visible,
+                fit: StackFit.passthrough,
+                children: widget.children.reversed
+                    .map(
+                      (swiperCard) {
+                        return swiperCard == widget.children.last
+                            ? _buildCard(swiperCard)
+                            : _buildDeck(swiperCard);
+                      },
+                    )
+                    .toList()
+                    .reversed
+                    .toList(),
+              );
+            },
           ),
         ),
         decisionButton(),
@@ -103,109 +110,6 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
           _FeedbackType.INCORRECT,
         ),
       ],
-    );
-  }
-
-  Widget swipedCardsFeedback(
-    List<SwipeCardItem<T>> swipedCards,
-    GlobalKey<AnimatedListState> listKey,
-    _FeedbackType type,
-  ) {
-    return SizedBox(
-      height: widget.feedbackHeight + 24.0 + 5.0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Flexible(
-            child: AnimatedList(
-              key: listKey,
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index, animation) {
-                return ScaleTransition(
-                  scale: animation.drive(
-                    CurveTween(
-                      curve: Curves.elasticOut,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: SizedBox(
-                      height: widget.feedbackHeight,
-                      width: widget.feedbackWidth,
-                      child: InkWell(
-                        child: swipedCards[index],
-                        onTap: () {
-                          listKey.currentState.removeItem(
-                            index,
-                            (context, animation) {
-                              final item = swipedCards.removeAt(index);
-
-                              animation.addStatusListener((status) {
-                                if (status == AnimationStatus.dismissed)
-                                  _addOnDeckAndUpdate(item);
-                              });
-
-                              return ScaleTransition(
-                                scale: animation.drive(
-                                  CurveTween(
-                                    curve: Curves.elasticOut,
-                                  ),
-                                ),
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 8.0),
-                                  height: widget.feedbackHeight,
-                                  width: widget.feedbackWidth,
-                                  child: item,
-                                ),
-                              );
-                            },
-                            duration: const Duration(milliseconds: 500),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(36.0),
-              color: type == _FeedbackType.CORRECT ? Colors.green : Colors.red,
-            ),
-            margin: const EdgeInsets.only(
-              top: 8.0,
-              left: 16.0,
-              bottom: 16.0,
-              right: 16.0,
-            ),
-            height: 5.0,
-            width: swipedCards.length *
-                    (widget.feedbackWidth + widget.feedbackMargin * 2) +
-                (swipedCards.isNotEmpty ? 8.0 : 0.0),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget decisionButton() {
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: (widget.rejectButton is Widget && widget.acceptButton is Widget)
-          ? Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              mainAxisSize: MainAxisSize.max,
-              children: <Widget>[
-                widget.rejectButton,
-                widget.acceptButton,
-              ],
-            )
-          : Container(),
     );
   }
 
@@ -229,6 +133,10 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
       _acceptedCards.length - 1,
       duration: const Duration(milliseconds: 500),
     );
+    _metrics.animateFeedbackIndicator(
+      _FeedbackType.CORRECT,
+      _SwipeCardAnimate.FORWARD,
+    );
     _removeFromDeckAndUpdate(swipedCard);
   }
 
@@ -239,6 +147,10 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
       _rejectedCards.length - 1,
       duration: const Duration(milliseconds: 500),
     );
+    _metrics.animateFeedbackIndicator(
+      _FeedbackType.INCORRECT,
+      _SwipeCardAnimate.FORWARD,
+    );
     _removeFromDeckAndUpdate(swipedCard);
   }
 
@@ -247,7 +159,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   }
 
   void _removeFromDeckAndUpdate(SwipeCardItem swiperCard) {
-    setState(() {
+    _stackKey.currentState.setState(() {
       widget.children.remove(swiperCard);
       if (widget.children.isEmpty) _onCompleted();
       widget.swipeController.currentCard = null;
@@ -256,12 +168,12 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     });
   }
 
-  void _addOnDeckAndUpdate(SwipeCardItem swiperCard) {
-    setState(() {
+  void _addOnDeckAndUpdate(SwipeCardItem swiperCard, _FeedbackType type) {
+    _stackKey.currentState.setState(() {
       widget.children.add(swiperCard);
       widget.swipeController.currentCard = null;
-      _animateDeck(_SwipeCardAnimate.FORWARD, from: 1.0);
-      _metrics.initCardAnimationParameters();
+      _animateDeck(_SwipeCardAnimate.FORWARD, from: 0.0);
+      _metrics.initReverseCardAnimationParameters(type);
     });
   }
 
@@ -368,6 +280,125 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
       statusListener,
     );
   }
+
+  Widget swipedCardsFeedback(
+    List<SwipeCardItem<T>> swipedCards,
+    GlobalKey<AnimatedListState> listKey,
+    _FeedbackType type,
+  ) {
+    return SizedBox(
+      height: widget.feedbackHeight + 24.0 + 5.0,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Flexible(
+            child: AnimatedList(
+              key: listKey,
+              shrinkWrap: true,
+              physics: BouncingScrollPhysics(),
+              scrollDirection: Axis.horizontal,
+              itemBuilder: (context, index, animation) {
+                // controller.forward().whenComplete(() {
+                //   controller.reset();
+                // });
+                return ScaleTransition(
+                  scale: animation.drive(
+                    CurveTween(
+                      curve: Curves.elasticOut,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: SizedBox(
+                      height: widget.feedbackHeight,
+                      width: widget.feedbackWidth,
+                      child: InkWell(
+                        child: swipedCards[index],
+                        onTap: () {
+                          final item = swipedCards.removeAt(index);
+
+                          final reverseAnimationDuration =
+                              const Duration(milliseconds: 500);
+
+                          listKey.currentState.removeItem(
+                            index,
+                            (context, reverseAnimation) {
+                              return ScaleTransition(
+                                scale: reverseAnimation.drive(
+                                  CurveTween(
+                                    curve: Curves.elasticOut,
+                                  ),
+                                ),
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(
+                                      horizontal: 8.0),
+                                  height: widget.feedbackHeight,
+                                  width: widget.feedbackWidth,
+                                  child: item,
+                                ),
+                              );
+                            },
+                            duration: reverseAnimationDuration,
+                          );
+
+                          Future.delayed(reverseAnimationDuration, () {
+                            _addOnDeckAndUpdate(item, type);
+                            _metrics.animateFeedbackIndicator(
+                                type, _SwipeCardAnimate.REVERSE);
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          AnimatedBuilder(
+              animation: type == _FeedbackType.CORRECT
+                  ? _metrics._initAcceptedFeedbackIndicatorAnimation()
+                  : _metrics._initRejectedFeedbackIndicatorAnimation(),
+              builder: (_, __) {
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(36.0),
+                    color: type == _FeedbackType.CORRECT
+                        ? Colors.green
+                        : Colors.red,
+                  ),
+                  margin: const EdgeInsets.only(
+                    top: 8.0,
+                    left: 16.0,
+                    bottom: 16.0,
+                    right: 16.0,
+                  ),
+                  height: 5.0,
+                  width: swipedCards.length *
+                          (widget.feedbackWidth + widget.feedbackMargin * 2) +
+                      (swipedCards.isNotEmpty ? 8.0 : 0.0),
+                );
+              }),
+        ],
+      ),
+    );
+  }
+
+  Widget decisionButton() {
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: (widget.rejectButton is Widget && widget.acceptButton is Widget)
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisSize: MainAxisSize.max,
+              children: <Widget>[
+                widget.rejectButton,
+                widget.acceptButton,
+              ],
+            )
+          : Container(),
+    );
+  }
 }
 
 class SwipeCardController {
@@ -413,21 +444,28 @@ class _SwipeCardAnimationMetrics {
   final int _cardsToTranslate;
   AnimationController _cardAnimationController;
   AnimationController _deckAnimationController;
+  AnimationController _acceptedIndicatorController;
+  AnimationController _rejectedIndicatorController;
   Animation<Offset> _cardAnimation;
-  Offset _currentCardPosition;
+  Offset currentCardPosition;
   Offset _deckPosition;
   double _cardAngle;
   double _deckScale;
 
   _SwipeCardAnimationMetrics(this._cardsToTranslate);
 
-  Offset get currentCardPosition => _currentCardPosition;
-
   double get cardAngle => _cardAngle;
 
   void initCardAnimationParameters() {
-    _currentCardPosition = Offset.zero;
+    currentCardPosition = Offset.zero;
     _cardAngle = 0.0;
+  }
+
+  void initReverseCardAnimationParameters(_FeedbackType type) {
+    currentCardPosition =
+        Offset(type == _FeedbackType.CORRECT ? 500.0 : -500.0, 0);
+    _cardAngle = 0.0;
+    animateCardReturn(updateCardPositionAndRotation);
   }
 
   void _initCardAnimation(int milliseconds, Offset endOffset, Curve curve) {
@@ -436,7 +474,7 @@ class _SwipeCardAnimationMetrics {
       vsync: _globalKey.currentState,
     );
     _cardAnimation = Tween<Offset>(
-      begin: _currentCardPosition,
+      begin: currentCardPosition,
       end: endOffset,
     ).animate(
       CurvedAnimation(
@@ -456,6 +494,20 @@ class _SwipeCardAnimationMetrics {
     _deckAnimationController = AnimationController(
       duration: Duration(milliseconds: 500),
       vsync: _globalKey.currentState,
+    );
+  }
+
+  Animation<double> _initAcceptedFeedbackIndicatorAnimation() {
+    return _acceptedIndicatorController = AnimationController(
+      vsync: _globalKey.currentState,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  Animation<double> _initRejectedFeedbackIndicatorAnimation() {
+    return _rejectedIndicatorController = AnimationController(
+      vsync: _globalKey.currentState,
+      duration: const Duration(milliseconds: 250),
     );
   }
 
@@ -507,9 +559,9 @@ class _SwipeCardAnimationMetrics {
 
   void animateCardSwipe(Offset targetOffset, Function statusListener) {
     if (isAnimationControllerBusy(_cardAnimationController)) return;
-    final targetPosition = _currentCardPosition.translate(
-        2 * _currentCardPosition.dx + targetOffset.dx,
-        2 * _currentCardPosition.dy + targetOffset.dy);
+    final targetPosition = currentCardPosition.translate(
+        2 * currentCardPosition.dx + targetOffset.dx,
+        2 * currentCardPosition.dy + targetOffset.dy);
     _initCardAnimation(500, targetPosition, Curves.linear);
     _cardAnimation.addStatusListener(statusListener);
     _cardAnimation.addListener(updateCardPositionAndRotation);
@@ -532,6 +584,20 @@ class _SwipeCardAnimationMetrics {
       _deckAnimationController.reverse(from: from);
   }
 
+  void animateFeedbackIndicator(
+    _FeedbackType type,
+    _SwipeCardAnimate animate,
+  ) async {
+    final feedbackController = type == _FeedbackType.CORRECT
+        ? _acceptedIndicatorController
+        : _rejectedIndicatorController;
+    if (animate == _SwipeCardAnimate.FORWARD)
+      await feedbackController.forward();
+    else
+      await feedbackController.reverse();
+    feedbackController.reset();
+  }
+
   void resetCardAnimation() {
     if (isAnimationControllerBusy(_cardAnimationController)) {
       _cardAnimationController.reset();
@@ -540,11 +606,11 @@ class _SwipeCardAnimationMetrics {
   }
 
   void updateCardPositionAndRotation({Offset delta}) {
-    _globalKey.currentState.setState(() {
+    _stackKey.currentState.setState(() {
       delta != null
-          ? _calcPosition(_currentCardPosition, delta)
-          : _currentCardPosition = _cardAnimation.value;
-      _calcAngle(_currentCardPosition);
+          ? _calcPosition(currentCardPosition, delta)
+          : currentCardPosition = _cardAnimation.value;
+      _calcAngle(currentCardPosition);
     });
   }
 
@@ -553,14 +619,14 @@ class _SwipeCardAnimationMetrics {
           controller?.status == AnimationStatus.reverse);
 
   bool isCardInsideEdges(double cardWidth) {
-    return _currentCardPosition.dx < 0.4 * cardWidth &&
-        _currentCardPosition.dx > -0.4 * cardWidth;
+    return currentCardPosition.dx < 0.4 * cardWidth &&
+        currentCardPosition.dx > -0.4 * cardWidth;
   }
 
   double _calcAngle(Offset pos) => _cardAngle = pos.dx * 0.003;
 
   Offset _calcPosition(Offset currentPosition, Offset delta) =>
-      _currentCardPosition =
+      currentCardPosition =
           Offset(currentPosition.dx + delta.dx, currentPosition.dy + delta.dy);
 
   void animationsDispose() {
@@ -572,5 +638,9 @@ class _SwipeCardAnimationMetrics {
         _deckAnimationController?.status == AnimationStatus.reverse)
       _deckAnimationController.reset();
     _deckAnimationController?.dispose();
+    if (_acceptedIndicatorController?.status == AnimationStatus.forward ||
+        _acceptedIndicatorController?.status == AnimationStatus.reverse)
+      _acceptedIndicatorController.reset();
+    _acceptedIndicatorController?.dispose();
   }
 }
