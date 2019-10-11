@@ -40,16 +40,14 @@ class SwipeCardExample extends StatelessWidget {
         10,
         (int index) => SwipeCardItem<int>(
           value: index,
-          child: Container(
-            color: Color(
-                    (math.Random().nextDouble() * 255 * 0xFFFFFF).toInt() << 0)
-                .withOpacity(1.0),
-            child: Center(
-              child: Text(
-                index.toString(),
-                style: TextStyle(
-                  fontSize: 32.0,
-                  color: Colors.white,
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  fit: BoxFit.cover,
+                  image: NetworkImage(
+                      'https://picsum.photos/id/${math.Random().nextInt(1000)}/200/200'),
                 ),
               ),
             ),
@@ -85,6 +83,9 @@ class SwipeCardExample extends StatelessWidget {
       },
       onRejected: (int value) {
         print('Rejected card value = $value');
+      },
+      onReview: (int value) {
+        print('Review card value = $value');
       },
       onCompleted: () {
         print('Swipe Completed');

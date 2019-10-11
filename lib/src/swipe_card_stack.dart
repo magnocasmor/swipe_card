@@ -24,9 +24,12 @@ class SwipeCardStack<T> extends StatefulWidget {
   final Widget incorrectIndicator;
   final Function(T) onAccepted;
   final Function(T) onRejected;
+  final Function(T) onReview;
   final VoidCallback onCompleted;
 
   SwipeCardStack({
+    @required this.children,
+    SwipeCardController swipeController,
     this.height,
     this.width,
     this.feedbackWidth = 60.0,
@@ -34,8 +37,6 @@ class SwipeCardStack<T> extends StatefulWidget {
     this.feedbackMargin = 8.0,
     this.deckCardsVisible = 2,
     this.deckPadding = const EdgeInsets.all(0.0),
-    this.children = const <SwipeCardItem>[],
-    SwipeCardController swipeController,
     this.completedWidget,
     this.acceptButton,
     this.rejectButton,
@@ -43,8 +44,9 @@ class SwipeCardStack<T> extends StatefulWidget {
     this.incorrectIndicator,
     this.onAccepted,
     this.onRejected,
+    this.onReview,
     this.onCompleted,
-  })  : assert(children != null),
+  })  : assert(children is List<SwipeCardItem<T>>),
         this.swipeController = swipeController ?? SwipeCardController(),
         super(key: _globalKey);
 
@@ -233,15 +235,9 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
       child: AnimatedList(
         key: listKey,
         shrinkWrap: true,
-        // controller: scrollController,
         physics: BouncingScrollPhysics(),
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index, animation) {
-          // scrollController.animateTo(
-          //   index * widget.feedbackWidth,
-          //   duration: const Duration(milliseconds: 250),
-          //   curve: Curves.linear,
-          // );
           return _swipedCardItem(
             animation,
             swipedCards,
@@ -252,6 +248,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
                 final reverseAnimationDuration =
                     const Duration(milliseconds: 250);
+
+                widget.onReview?.call(item.value);
 
                 listKey.currentState.removeItem(
                   index,
