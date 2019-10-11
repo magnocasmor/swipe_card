@@ -14,6 +14,7 @@ class SwipeCardStack<T> extends StatefulWidget {
   final double feedbackHeight;
   final double feedbackMargin;
   final int deckCardsVisible;
+  final EdgeInsets deckPadding;
   final SwipeCardController swipeController;
   final List<SwipeCardItem> children;
   final Widget completedWidget;
@@ -32,6 +33,7 @@ class SwipeCardStack<T> extends StatefulWidget {
     this.feedbackHeight = 48.0,
     this.feedbackMargin = 8.0,
     this.deckCardsVisible = 2,
+    this.deckPadding = const EdgeInsets.all(0.0),
     this.children = const <SwipeCardItem>[],
     SwipeCardController swipeController,
     this.completedWidget,
@@ -100,30 +102,33 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
         key: _stackKey,
         builder: (_, __) {
           _metrics.initDeckAnimationParameters();
-          return Stack(
-            overflow: Overflow.visible,
-            fit: StackFit.passthrough,
-            children: [
-              if (widget.completedWidget is Widget)
-                Positioned.fill(
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 250),
-                    opacity: widget.children.isEmpty ? 1.0 : 0.0,
-                    child: widget.completedWidget,
+          return Padding(
+            padding: widget.deckPadding,
+            child: Stack(
+              overflow: Overflow.visible,
+              fit: StackFit.passthrough,
+              children: [
+                if (widget.completedWidget is Widget)
+                  Positioned.fill(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 250),
+                      opacity: widget.children.isEmpty ? 1.0 : 0.0,
+                      child: widget.completedWidget,
+                    ),
                   ),
-                ),
-              ...widget.children.reversed
-                  .map(
-                    (swiperCard) {
-                      return swiperCard == widget.children.last
-                          ? _buildCard(swiperCard)
-                          : _buildDeck(swiperCard);
-                    },
-                  )
-                  .toList()
-                  .reversed
-                  .toList(),
-            ],
+                ...widget.children.reversed
+                    .map(
+                      (swiperCard) {
+                        return swiperCard == widget.children.last
+                            ? _buildCard(swiperCard)
+                            : _buildDeck(swiperCard);
+                      },
+                    )
+                    .toList()
+                    .reversed
+                    .toList(),
+              ],
+            ),
           );
         },
       ),
