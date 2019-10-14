@@ -99,41 +99,39 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   }
 
   Widget _deck() {
-    return Expanded(
-      child: StatefulBuilder(
-        key: _stackKey,
-        builder: (_, __) {
-          _metrics.initDeckAnimationParameters();
-          return Padding(
-            padding: widget.deckPadding,
-            child: Stack(
-              overflow: Overflow.visible,
-              fit: StackFit.passthrough,
-              children: [
-                if (widget.completedWidget is Widget)
-                  Positioned.fill(
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 250),
-                      opacity: widget.children.isEmpty ? 1.0 : 0.0,
-                      child: widget.completedWidget,
-                    ),
+    return StatefulBuilder(
+      key: _stackKey,
+      builder: (_, __) {
+        _metrics.initDeckAnimationParameters();
+        return Padding(
+          padding: widget.deckPadding,
+          child: Stack(
+            overflow: Overflow.visible,
+            fit: StackFit.passthrough,
+            children: [
+              if (widget.completedWidget is Widget)
+                Positioned.fill(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 250),
+                    opacity: widget.children.isEmpty ? 1.0 : 0.0,
+                    child: widget.completedWidget,
                   ),
-                ...widget.children.reversed
-                    .map(
-                      (swiperCard) {
-                        return swiperCard == widget.children.last
-                            ? _buildCard(swiperCard)
-                            : _buildDeck(swiperCard);
-                      },
-                    )
-                    .toList()
-                    .reversed
-                    .toList(),
-              ],
-            ),
-          );
-        },
-      ),
+                ),
+              ...widget.children.reversed
+                  .map(
+                    (swiperCard) {
+                      return swiperCard == widget.children.last
+                          ? _buildCard(swiperCard)
+                          : _buildDeck(swiperCard);
+                    },
+                  )
+                  .toList()
+                  .reversed
+                  .toList(),
+            ],
+          ),
+        );
+      },
     );
   }
 

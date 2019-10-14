@@ -35,7 +35,7 @@ class SwipeCardExample extends StatelessWidget {
   Widget build(BuildContext context) {
     return SwipeCardStack<int>(
       swipeController: swipeController,
-      deckPadding: const EdgeInsets.symmetric(horizontal: 32.0),
+      deckPadding: const EdgeInsets.symmetric(horizontal: 320.0),
       children: List<SwipeCardItem<int>>.generate(
         10,
         (int index) => SwipeCardItem<int>(
