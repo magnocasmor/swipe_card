@@ -94,7 +94,6 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   @override
   void dispose() {
     _metrics.animationsDispose();
-
     super.dispose();
   }
 
@@ -136,8 +135,11 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   }
 
   Widget _decisionButton() {
+    final cardHeight = MediaQuery.of(context).size.width -
+        widget.deckPadding.along(Axis.horizontal);
+    final padding = ((cardHeight * .08) * .38) * widget.deckCardsVisible;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 32.0),
+      padding: EdgeInsets.symmetric(vertical: padding),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.max,
@@ -145,9 +147,6 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
           if (widget.rejectButton is Widget &&
               widget.acceptButton is Widget) ...[
             widget.rejectButton,
-            SizedBox(
-              width: 32.0,
-            ),
             widget.acceptButton,
           ]
         ],

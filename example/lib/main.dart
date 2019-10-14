@@ -35,7 +35,7 @@ class SwipeCardExample extends StatelessWidget {
   Widget build(BuildContext context) {
     return SwipeCardStack<int>(
       swipeController: swipeController,
-      deckPadding: const EdgeInsets.symmetric(horizontal: 320.0),
+      deckPadding: const EdgeInsets.symmetric(horizontal: 220.0),
       children: List<SwipeCardItem<int>>.generate(
         10,
         (int index) => SwipeCardItem<int>(
@@ -59,24 +59,30 @@ class SwipeCardExample extends StatelessWidget {
         child:
             Center(child: Text('Clique em alguma imagem se quiser corrigir')),
       ),
-      rejectButton: FlatButton(
-        padding: EdgeInsets.all(24.0),
-        shape: CircleBorder(),
-        color: Colors.red,
-        child: Icon(
-          Icons.clear,
+      rejectButton: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: FlatButton(
+          padding: EdgeInsets.all(24.0),
+          shape: CircleBorder(),
           color: Colors.red,
+          child: Icon(
+            Icons.clear,
+            color: Colors.red,
+          ),
+          onPressed: swipeController.rejectCard,
         ),
-        onPressed: swipeController.rejectCard,
       ),
-      acceptButton: FlatButton(
-        padding: EdgeInsets.all(24.0),
-        shape: CircleBorder(),
-        color: Colors.green,
-        child: Icon(
-          Icons.check,
+      acceptButton: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: FlatButton(
+          padding: EdgeInsets.all(24.0),
+          shape: CircleBorder(),
+          color: Colors.green,
+          child: Icon(
+            Icons.check,
+          ),
+          onPressed: swipeController.acceptCard,
         ),
-        onPressed: swipeController.acceptCard,
       ),
       onAccepted: (int value) {
         print('Accepted card value = $value');
