@@ -139,14 +139,17 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   Widget _decisionButton() {
     return Padding(
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.symmetric(vertical: 32.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.max,
         children: <Widget>[
           if (widget.rejectButton is Widget &&
               widget.acceptButton is Widget) ...[
             widget.rejectButton,
+            SizedBox(
+              width: 32.0,
+            ),
             widget.acceptButton,
           ]
         ],
