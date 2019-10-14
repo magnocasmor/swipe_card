@@ -109,7 +109,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
             fit: StackFit.passthrough,
             children: [
               if (widget.completedWidget is Widget)
-                Positioned.fill(
+                Align(
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 250),
                     opacity: widget.children.isEmpty ? 1.0 : 0.0,

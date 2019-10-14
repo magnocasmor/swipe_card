@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:swipe_card/swipe_card.dart';
-import 'package:flutter/scheduler.dart';
 
 void main() {
   // timeDilation = 5.0;
@@ -33,78 +32,83 @@ class SwipeCardExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SwipeCardStack<int>(
-      swipeController: swipeController,
-      deckPadding: const EdgeInsets.symmetric(horizontal: 220.0),
-      children: List<SwipeCardItem<int>>.generate(
-        10,
-        (int index) => SwipeCardItem<int>(
-          value: index,
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: NetworkImage(
-                      'https://picsum.photos/id/${math.Random().nextInt(1000)}/200/200'),
+    return SingleChildScrollView(
+      child: SwipeCardStack<int>(
+        swipeController: swipeController,
+        deckPadding: const EdgeInsets.symmetric(horizontal: 32.0),
+        children: List<SwipeCardItem<int>>.generate(
+          3,
+          (int index) => SwipeCardItem<int>(
+            value: index,
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: NetworkImage(
+                        'https://picsum.photos/id/${math.Random().nextInt(1000)}/200/200'),
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-      completedWidget: Container(
-        color: Colors.grey,
-        child:
-            Center(child: Text('Clique em alguma imagem se quiser corrigir')),
-      ),
-      rejectButton: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: FlatButton(
-          padding: EdgeInsets.all(24.0),
-          shape: CircleBorder(),
-          color: Colors.red,
-          child: Icon(
-            Icons.clear,
+        completedWidget: AspectRatio(
+          aspectRatio: 1,
+          child: Container(
+            color: Colors.grey,
+            child: Center(
+                child: Text('Clique em alguma imagem se quiser corrigir')),
+          ),
+        ),
+        rejectButton: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: FlatButton(
+            padding: EdgeInsets.all(24.0),
+            shape: CircleBorder(),
             color: Colors.red,
+            child: Icon(
+              Icons.clear,
+              color: Colors.red,
+            ),
+            onPressed: swipeController.rejectCard,
           ),
-          onPressed: swipeController.rejectCard,
         ),
-      ),
-      acceptButton: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: FlatButton(
-          padding: EdgeInsets.all(24.0),
-          shape: CircleBorder(),
+        acceptButton: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: FlatButton(
+            padding: EdgeInsets.all(24.0),
+            shape: CircleBorder(),
+            color: Colors.green,
+            child: Icon(
+              Icons.check,
+            ),
+            onPressed: swipeController.acceptCard,
+          ),
+        ),
+        onAccepted: (int value) {
+          print('Accepted card value = $value');
+        },
+        onRejected: (int value) {
+          print('Rejected card value = $value');
+        },
+        onReview: (int value) {
+          print('Review card value = $value');
+        },
+        onCompleted: () {
+          print('Swipe Completed');
+        },
+        correctIndicator: Icon(
+          Icons.person,
           color: Colors.green,
-          child: Icon(
-            Icons.check,
-          ),
-          onPressed: swipeController.acceptCard,
+          size: 48.0,
         ),
-      ),
-      onAccepted: (int value) {
-        print('Accepted card value = $value');
-      },
-      onRejected: (int value) {
-        print('Rejected card value = $value');
-      },
-      onReview: (int value) {
-        print('Review card value = $value');
-      },
-      onCompleted: () {
-        print('Swipe Completed');
-      },
-      correctIndicator: Icon(
-        Icons.person,
-        color: Colors.green,
-        size: 48.0,
-      ),
-      incorrectIndicator: Icon(
-        Icons.remove_circle,
-        color: Colors.red,
-        size: 48.0,
+        incorrectIndicator: Icon(
+          Icons.remove_circle,
+          color: Colors.red,
+          size: 48.0,
+        ),
       ),
     );
   }
