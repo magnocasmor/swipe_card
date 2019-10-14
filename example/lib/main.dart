@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:swipe_card/swipe_card.dart';
 
+final swipeController = SwipeCardController<int>();
+
 void main() {
   // timeDilation = 5.0;
   runApp(App());
@@ -22,14 +24,21 @@ class _AppState extends State<App> {
           title: Text('Swipe Card Example'),
         ),
         body: SwipeCardExample(),
+        floatingActionButton: FloatingActionButton(
+          child: Icon(Icons.check),
+          onPressed: () {
+            swipeController.completeSwipe(
+              accepteds: [0, 1, 2],
+              rejecteds: [3, 4, 5],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
 class SwipeCardExample extends StatelessWidget {
-  final swipeController = SwipeCardController();
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -37,7 +46,7 @@ class SwipeCardExample extends StatelessWidget {
         swipeController: swipeController,
         deckPadding: const EdgeInsets.symmetric(horizontal: 32.0),
         children: List<SwipeCardItem<int>>.generate(
-          3,
+          6,
           (int index) => SwipeCardItem<int>(
             value: index,
             child: AspectRatio(

@@ -69,6 +69,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   void initState() {
     super.initState();
+
     _metrics = _SwipeCardAnimationMetrics(widget.deckCardsVisible);
 
     _metrics.initCardAnimationParameters();
@@ -321,17 +322,17 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     );
   }
 
-  void _onAcceptedCard(SwipeCardItem swipedCard) {
+  Future<void> onAcceptedCard(SwipeCardItem swipedCard) async {
     if (widget.onAccepted != null) widget.onAccepted(swipedCard.value);
 
     _acceptedCards.add(swipedCard);
 
-    animateRejectedFeedback().whenComplete(() {
-      _acceptedListKey.currentState.insertItem(
-        _acceptedCards.indexOf(swipedCard),
-        duration: const Duration(milliseconds: 250),
-      );
-    });
+    await animateRejectedFeedback();
+
+    _acceptedListKey.currentState.insertItem(
+      _acceptedCards.indexOf(swipedCard),
+      duration: const Duration(milliseconds: 250),
+    );
 
     _metrics.animateFeedbackIndicator(
       _FeedbackType.CORRECT,
@@ -341,17 +342,17 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     _removeFromDeckAndUpdate(swipedCard);
   }
 
-  void _onRejectedCard(SwipeCardItem swipedCard) {
+  Future<void> onRejectedCard(SwipeCardItem swipedCard) async {
     if (widget.onRejected != null) widget.onRejected(swipedCard.value);
 
     _rejectedCards.add(swipedCard);
 
-    animateRejectedFeedback().whenComplete(() {
-      _rejectedListKey.currentState.insertItem(
-        _rejectedCards.length - 1,
-        duration: const Duration(milliseconds: 250),
-      );
-    });
+    await animateRejectedFeedback();
+
+    _rejectedListKey.currentState.insertItem(
+      _rejectedCards.indexOf(swipedCard),
+      duration: const Duration(milliseconds: 250),
+    );
 
     _metrics.animateFeedbackIndicator(
       _FeedbackType.INCORRECT,
@@ -361,7 +362,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     _removeFromDeckAndUpdate(swipedCard);
   }
 
-  void _onCompleted() {
+  void onCompleted() {
     if (widget.onCompleted != null) widget.onCompleted();
   }
 
@@ -369,7 +370,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     _stackKey.currentState.setState(() {
       widget.children.remove(swiperCard);
 
-      if (widget.children.isEmpty) _onCompleted();
+      if (widget.children.isEmpty) onCompleted();
 
       widget.swipeController.currentCard = null;
 
@@ -498,13 +499,13 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   }
 }
 
-class SwipeCardController {
-  SwipeCardItem _currentCard;
+class SwipeCardController<T> {
+  SwipeCardItem<T> _currentCard;
 
   set currentCard(SwipeCardItem currentCard) => _currentCard = currentCard;
 
   void acceptCard({Offset targetOffset}) {
-    if (_currentCard == null) return _globalKey.currentState._onCompleted();
+    if (_currentCard == null) return _globalKey.currentState.onCompleted();
     if (targetOffset == null)
       targetOffset = Offset(
         (_globalKey.currentContext.findRenderObject() as RenderBox).size.width +
@@ -514,12 +515,12 @@ class SwipeCardController {
     _globalKey.currentState._animateDeck(_SwipeCardAnimate.REVERSE);
     _globalKey.currentState.animateCardSwipe(targetOffset, (status) {
       if (status == AnimationStatus.completed)
-        _globalKey.currentState._onAcceptedCard(_currentCard);
+        _globalKey.currentState.onAcceptedCard(_currentCard);
     });
   }
 
   void rejectCard({Offset targetOffset}) {
-    if (_currentCard == null) return _globalKey.currentState._onCompleted();
+    if (_currentCard == null) return _globalKey.currentState.onCompleted();
     if (targetOffset == null)
       targetOffset = Offset(
           -(_globalKey.currentContext.findRenderObject() as RenderBox)
@@ -530,8 +531,35 @@ class SwipeCardController {
     _globalKey.currentState._animateDeck(_SwipeCardAnimate.REVERSE);
     _globalKey.currentState.animateCardSwipe(targetOffset, (status) {
       if (status == AnimationStatus.completed)
-        _globalKey.currentState._onRejectedCard(_currentCard);
+        _globalKey.currentState.onRejectedCard(_currentCard);
     });
+  }
+
+  Future<void> completeSwipe({
+    List<T> accepteds = const [],
+    List<T> rejecteds = const [],
+  }) async {
+    final swipeDeck = _globalKey.currentState;
+
+    final children = _globalKey.currentState.widget.children;
+
+    if (children.isEmpty) return;
+
+    for (int i = 0; i < accepteds.length; i++) {
+      final item = children.singleWhere((item) {
+        return item.value == accepteds[i];
+      }, orElse: () => null);
+      if (item == null) continue;
+      await swipeDeck.onAcceptedCard(item);
+    }
+
+    for (int i = 0; i < rejecteds.length; i++) {
+      final item = children.singleWhere((item) {
+        return item.value == rejecteds[i];
+      }, orElse: () => null);
+      if (item == null) continue;
+      await swipeDeck.onRejectedCard(item);
+    }
   }
 }
 
