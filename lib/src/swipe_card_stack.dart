@@ -63,12 +63,16 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   final GlobalKey<AnimatedListState> _rejectedListKey =
       GlobalKey<AnimatedListState>();
 
+  final itens = <SwipeCardItem<T>>[];
+
   final _acceptedCards = <SwipeCardItem<T>>[];
 
   final _rejectedCards = <SwipeCardItem<T>>[];
 
   void initState() {
     super.initState();
+
+    itens.addAll(List.from(widget.children));
 
     _metrics = _SwipeCardAnimationMetrics(widget.deckCardsVisible);
 
@@ -117,10 +121,10 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
                     child: widget.completedWidget,
                   ),
                 ),
-              ...widget.children.reversed
+              ...itens.reversed
                   .map(
                     (swiperCard) {
-                      return swiperCard == widget.children.last
+                      return swiperCard == itens.last
                           ? _buildCard(swiperCard)
                           : _buildDeck(swiperCard);
                     },
@@ -231,7 +235,6 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     List<SwipeCardItem> swipedCards,
     _FeedbackType type,
   ) {
-    // final scrollController = ScrollController();
     return Flexible(
       child: AnimatedList(
         key: listKey,
@@ -340,6 +343,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     );
 
     _removeFromDeckAndUpdate(swipedCard);
+
+    itens.remove(swipedCard);
   }
 
   Future<void> onRejectedCard(SwipeCardItem swipedCard) async {
@@ -360,6 +365,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     );
 
     _removeFromDeckAndUpdate(swipedCard);
+
+    itens.remove(swipedCard);
   }
 
   void onCompleted() {
@@ -368,9 +375,9 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   void _removeFromDeckAndUpdate(SwipeCardItem swiperCard) {
     _stackKey.currentState.setState(() {
-      widget.children.remove(swiperCard);
+      itens.remove(swiperCard);
 
-      if (widget.children.isEmpty) onCompleted();
+      if (itens.isEmpty) onCompleted();
 
       widget.swipeController.currentCard = null;
 
@@ -382,13 +389,15 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   void _addOnDeckAndUpdate(SwipeCardItem swiperCard, _FeedbackType type) {
     _stackKey.currentState.setState(() {
-      widget.children.add(swiperCard);
+      itens.add(swiperCard);
 
       widget.swipeController.currentCard = null;
 
       _animateDeck(_SwipeCardAnimate.FORWARD, from: 0.0);
 
       _metrics.initReverseCardAnimationParameters(type);
+
+      itens.add(swiperCard);
     });
   }
 
@@ -541,7 +550,7 @@ class SwipeCardController<T> {
   }) async {
     final swipeDeck = _globalKey.currentState;
 
-    final children = _globalKey.currentState.widget.children;
+    final children = _globalKey.currentState.itens;
 
     if (children.isEmpty) return;
 
