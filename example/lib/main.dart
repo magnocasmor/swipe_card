@@ -27,10 +27,11 @@ class _AppState extends State<App> {
         floatingActionButton: FloatingActionButton(
           child: Icon(Icons.check),
           onPressed: () {
-            swipeController.completeSwipe(
-              accepteds: [0, 1, 2],
-              rejecteds: [3, 4, 5],
-            );
+            setState(() {});
+            // swipeController.completeSwipe(
+            //   accepteds: [0, 1, 2],
+            //   rejecteds: [3, 4, 5],
+            // );
           },
         ),
       ),
@@ -46,7 +47,7 @@ class SwipeCardExample extends StatelessWidget {
         swipeController: swipeController,
         deckPadding: const EdgeInsets.symmetric(horizontal: 32.0),
         children: List<SwipeCardItem<int>>.generate(
-          6,
+          5,
           (int index) => SwipeCardItem<int>(
             value: index,
             child: AspectRatio(

@@ -117,7 +117,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
                 Align(
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 250),
-                    opacity: widget.children.isEmpty ? 1.0 : 0.0,
+                    opacity: itens.isEmpty ? 1.0 : 0.0,
                     child: widget.completedWidget,
                   ),
                 ),
@@ -389,8 +389,6 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   void _addOnDeckAndUpdate(SwipeCardItem swiperCard, _FeedbackType type) {
     _stackKey.currentState.setState(() {
-      itens.add(swiperCard);
-
       widget.swipeController.currentCard = null;
 
       _animateDeck(_SwipeCardAnimate.FORWARD, from: 0.0);
