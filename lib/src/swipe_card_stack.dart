@@ -3,8 +3,6 @@ import 'package:swipe_card/src/swipe_card_item.dart';
 
 final _globalKey = GlobalKey<_SwipeCardStackState>();
 
-final _stackKey = GlobalKey<State<StatefulWidget>>();
-
 enum _FeedbackType { CORRECT, INCORRECT }
 
 class SwipeCardStack<T> extends StatefulWidget {
@@ -57,6 +55,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
     with TickerProviderStateMixin {
   _SwipeCardAnimationMetrics _metrics;
 
+  final stackKey = GlobalKey<State<StatefulWidget>>();
+
   final GlobalKey<AnimatedListState> _acceptedListKey =
       GlobalKey<AnimatedListState>();
 
@@ -104,7 +104,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
 
   Widget _deck() {
     return StatefulBuilder(
-      key: _stackKey,
+      key: stackKey,
       builder: (_, __) {
         _metrics.initDeckAnimationParameters();
         return Padding(
@@ -374,7 +374,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   }
 
   void _removeFromDeckAndUpdate(SwipeCardItem swiperCard) {
-    _stackKey.currentState.setState(() {
+    stackKey.currentState.setState(() {
       itens.remove(swiperCard);
 
       if (itens.isEmpty) onCompleted();
@@ -388,7 +388,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
   }
 
   void _addOnDeckAndUpdate(SwipeCardItem swiperCard, _FeedbackType type) {
-    _stackKey.currentState.setState(() {
+    stackKey.currentState.setState(() {
       widget.swipeController.currentCard = null;
 
       _animateDeck(_SwipeCardAnimate.FORWARD, from: 0.0);
@@ -756,7 +756,7 @@ class _SwipeCardAnimationMetrics {
   }
 
   void updateCardPositionAndRotation({Offset delta}) {
-    _stackKey.currentState.setState(() {
+    _globalKey.currentState.stackKey.currentState.setState(() {
       delta != null
           ? _calcPosition(currentCardPosition, delta)
           : currentCardPosition = _cardAnimation.value;
