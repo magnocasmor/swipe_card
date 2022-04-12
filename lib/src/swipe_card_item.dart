@@ -5,9 +5,9 @@ class SwipeCardItem<T> extends StatefulWidget {
   final Widget child;
 
   const SwipeCardItem({
-    Key key,
-    @required this.value,
-    @required this.child,
+    Key? key,
+    required this.value,
+    required this.child,
   })  : assert(value != null),
         super(key: key);
   _SwipeCardItemState createState() => _SwipeCardItemState<T>();
