@@ -1,8 +1,7 @@
 name: swipe_card_example
 description: Example of swipe card application.
 version: 0.0.1
-author: Magno Castro Moraes
-homepage: 
+publish_to: none
 
 environment:
   sdk: ">=2.1.0 <3.0.0"
@@ -16,6 +15,3 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-flutter:
-

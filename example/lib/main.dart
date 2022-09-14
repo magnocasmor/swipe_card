@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:swipe_card/swipe_card.dart';
 
@@ -73,10 +74,12 @@ class SwipeCardExample extends StatelessWidget {
         ),
         rejectButton: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: FlatButton(
-            padding: EdgeInsets.all(24.0),
-            shape: CircleBorder(),
-            color: Colors.red,
+          child: ElevatedButton(
+            style: ButtonStyle(
+              padding: MaterialStateProperty.all(EdgeInsets.all(24.0)),
+              shape: MaterialStateProperty.all(CircleBorder()),
+              backgroundColor: MaterialStateProperty.all(Colors.red),
+            ),
             child: Icon(
               Icons.clear,
               color: Colors.red,
@@ -86,10 +89,12 @@ class SwipeCardExample extends StatelessWidget {
         ),
         acceptButton: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: FlatButton(
-            padding: EdgeInsets.all(24.0),
-            shape: CircleBorder(),
-            color: Colors.green,
+          child: ElevatedButton(
+            style: ButtonStyle(
+              padding: MaterialStateProperty.all(EdgeInsets.all(24.0)),
+              shape: MaterialStateProperty.all(CircleBorder()),
+              backgroundColor: MaterialStateProperty.all(Colors.green),
+            ),
             child: Icon(
               Icons.check,
             ),
