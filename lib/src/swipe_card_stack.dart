@@ -13,15 +13,15 @@ class SwipeCardStack<T> extends StatefulWidget {
   final int deckCardsVisible;
   final EdgeInsets deckPadding;
   final SwipeCardController swipeController;
-  final List<SwipeCardItem> children;
+  final List<SwipeCardItem<T>> children;
   final Widget? completedWidget;
   final Widget? acceptButton;
   final Widget? rejectButton;
   final Widget? correctIndicator;
   final Widget? incorrectIndicator;
-  final Function(T)? onAccepted;
-  final Function(T)? onRejected;
-  final Function(T)? onReview;
+  final void Function(T)? onAccepted;
+  final void Function(T)? onRejected;
+  final void Function(T)? onReview;
   final VoidCallback? onCompleted;
 
   SwipeCardStack({
@@ -43,22 +43,24 @@ class SwipeCardStack<T> extends StatefulWidget {
     this.onRejected,
     this.onReview,
     this.onCompleted,
-  })  : assert(children is List<SwipeCardItem<T>>),
-        super(key: swipeController._swipeCardKey);
+  }) : super(key: swipeController._swipeCardKey);
 
   _SwipeCardStackState<T> createState() => _SwipeCardStackState<T>();
 }
 
-class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProviderStateMixin {
+class _SwipeCardStackState<T> extends State<SwipeCardStack<T>>
+    with TickerProviderStateMixin {
   late _SwipeCardAnimationMetrics _metrics;
 
   final stackKey = GlobalKey<State<StatefulWidget>>();
 
-  final GlobalKey<AnimatedListState> _acceptedListKey = GlobalKey<AnimatedListState>();
+  final GlobalKey<AnimatedListState> _acceptedListKey =
+      GlobalKey<AnimatedListState>();
 
-  final GlobalKey<AnimatedListState> _rejectedListKey = GlobalKey<AnimatedListState>();
+  final GlobalKey<AnimatedListState> _rejectedListKey =
+      GlobalKey<AnimatedListState>();
 
-  final List<SwipeCardItem<T?>> itens = <SwipeCardItem<T>>[];
+  final List<SwipeCardItem<T>> itens = <SwipeCardItem<T>>[];
 
   final List<SwipeCardItem<T?>?> _acceptedCards = <SwipeCardItem<T>?>[];
 
@@ -70,7 +72,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
     itens.addAll(List.from(widget.children));
 
     _metrics = _SwipeCardAnimationMetrics(
-        widget.key as GlobalKey<_SwipeCardStackState<dynamic>>?, widget.deckCardsVisible);
+        widget.key as GlobalKey<_SwipeCardStackState<dynamic>>?,
+        widget.deckCardsVisible);
 
     _metrics.initCardAnimationParameters();
 
@@ -136,8 +139,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
   }
 
   Widget _decisionButton() {
-    final cardHeight =
-        MediaQuery.of(context).size.width - widget.deckPadding.along(Axis.horizontal);
+    final cardHeight = MediaQuery.of(context).size.width -
+        widget.deckPadding.along(Axis.horizontal);
     final padding = ((cardHeight * .08) * .38) * widget.deckCardsVisible;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: padding),
@@ -145,7 +148,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.max,
         children: <Widget>[
-          if (widget.rejectButton is Widget && widget.acceptButton is Widget) ...[
+          if (widget.rejectButton is Widget &&
+              widget.acceptButton is Widget) ...[
             widget.rejectButton!,
             widget.acceptButton!,
           ]
@@ -217,7 +221,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
             right: 16.0,
           ),
           height: 5.0,
-          width: swipedCards.length * (widget.feedbackWidth + widget.feedbackMargin * 2) +
+          width: swipedCards.length *
+                  (widget.feedbackWidth + widget.feedbackMargin * 2) +
               (swipedCards.isNotEmpty ? 8.0 : 0.0),
         );
       },
@@ -244,7 +249,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
               onTap: () {
                 final item = swipedCards.removeAt(index)!;
 
-                final reverseAnimationDuration = const Duration(milliseconds: 250);
+                final reverseAnimationDuration =
+                    const Duration(milliseconds: 250);
 
                 widget.onReview?.call(item.value);
 
@@ -253,7 +259,8 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
                   (context, reverseAnimation) {
                     reverseAnimation.addListener(() async {
                       if (reverseAnimation.isDismissed) {
-                        _metrics.animateFeedbackIndicator(type, _SwipeCardAnimate.REVERSE);
+                        _metrics.animateFeedbackIndicator(
+                            type, _SwipeCardAnimate.REVERSE);
 
                         await Future.delayed(reverseAnimationDuration);
 
@@ -317,10 +324,10 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
     );
   }
 
-  Future<void> onAcceptedCard(SwipeCardItem? swipedCard) async {
-    if (widget.onAccepted != null) widget.onAccepted!(swipedCard!.value);
+  Future<void> onAcceptedCard(SwipeCardItem<T>? swipedCard) async {
+    widget.onAccepted?.call(swipedCard!.value);
 
-    _acceptedCards.add(swipedCard as SwipeCardItem<T?>?);
+    _acceptedCards.add(swipedCard);
 
     await animateRejectedFeedback();
 
@@ -339,10 +346,10 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
     itens.remove(swipedCard);
   }
 
-  Future<void> onRejectedCard(SwipeCardItem? swipedCard) async {
-    if (widget.onRejected != null) widget.onRejected!(swipedCard!.value);
+  Future<void> onRejectedCard(SwipeCardItem<T>? swipedCard) async {
+    widget.onRejected?.call(swipedCard!.value);
 
-    _rejectedCards.add(swipedCard as SwipeCardItem<T?>?);
+    _rejectedCards.add(swipedCard);
 
     await animateRejectedFeedback();
 
@@ -387,7 +394,7 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
 
       _metrics.initReverseCardAnimationParameters(type);
 
-      itens.add(swiperCard as SwipeCardItem<T?>);
+      itens.add(swiperCard as SwipeCardItem<T>);
     });
   }
 
@@ -447,15 +454,18 @@ class _SwipeCardStackState<T> extends State<SwipeCardStack<T?>> with TickerProvi
         }
         final cardRenderBox = context.findRenderObject() as RenderBox;
         final cardSize = cardRenderBox.size;
-        final void Function({Offset delta}) listener = _metrics.updateCardPositionAndRotation;
+        final void Function({Offset delta}) listener =
+            _metrics.updateCardPositionAndRotation;
         if (_metrics.isCardInsideEdges(cardSize.width)) {
           _metrics.animateCardReturn(listener);
           _animateDeck(_SwipeCardAnimate.FORWARD);
         } else {
           if (_metrics.currentCardPosition!.dx > 0)
-            widget.swipeController.acceptCard(targetOffset: details.velocity.pixelsPerSecond);
+            widget.swipeController
+                .acceptCard(targetOffset: details.velocity.pixelsPerSecond);
           else
-            widget.swipeController.rejectCard(targetOffset: details.velocity.pixelsPerSecond);
+            widget.swipeController
+                .rejectCard(targetOffset: details.velocity.pixelsPerSecond);
         }
       },
       child: Stack(
@@ -501,13 +511,17 @@ class SwipeCardController<T> {
 
   SwipeCardItem<T?>? _currentCard;
 
-  set currentCard(SwipeCardItem? currentCard) => _currentCard = currentCard as SwipeCardItem<T?>?;
+  set currentCard(SwipeCardItem? currentCard) =>
+      _currentCard = currentCard as SwipeCardItem<T?>?;
 
   void acceptCard({Offset? targetOffset}) {
     if (_currentCard == null) return _swipeCardKey.currentState!.onCompleted();
     if (targetOffset == null)
       targetOffset = Offset(
-        (_swipeCardKey.currentContext!.findRenderObject() as RenderBox).size.width + 500,
+        (_swipeCardKey.currentContext!.findRenderObject() as RenderBox)
+                .size
+                .width +
+            500,
         -100,
       );
     _swipeCardKey.currentState!._animateDeck(_SwipeCardAnimate.REVERSE);
@@ -521,7 +535,11 @@ class SwipeCardController<T> {
     if (_currentCard == null) return _swipeCardKey.currentState!.onCompleted();
     if (targetOffset == null)
       targetOffset = Offset(
-          -(_swipeCardKey.currentContext!.findRenderObject() as RenderBox).size.width - 500, -100);
+          -(_swipeCardKey.currentContext!.findRenderObject() as RenderBox)
+                  .size
+                  .width -
+              500,
+          -100);
     _swipeCardKey.currentState!._animateDeck(_SwipeCardAnimate.REVERSE);
     _swipeCardKey.currentState!.animateCardSwipe(targetOffset, (status) {
       if (status == AnimationStatus.completed)
@@ -590,7 +608,8 @@ class _SwipeCardAnimationMetrics {
   }
 
   void initReverseCardAnimationParameters(_FeedbackType type) {
-    currentCardPosition = Offset(type == _FeedbackType.CORRECT ? 500.0 : -500.0, 0);
+    currentCardPosition =
+        Offset(type == _FeedbackType.CORRECT ? 500.0 : -500.0, 0);
     _cardAngle = 0.0;
     animateCardReturn(updateCardPositionAndRotation);
   }
@@ -645,21 +664,28 @@ class _SwipeCardAnimationMetrics {
       end: _deckPosition!.dy < _cardsToTranslate * translateUnit
           ? _deckPosition = _deckPosition!.translate(.0, translateUnit)
           : _deckPosition,
-    ).animate(CurvedAnimation(parent: _deckAnimationController!, curve: Curves.easeInBack));
+    ).animate(CurvedAnimation(
+        parent: _deckAnimationController!, curve: Curves.easeInBack));
   }
 
   Animation<double> deckAnimatedScale() {
     return Tween<double>(
       begin: _deckScale,
-      end: _deckScale > _cardsToTranslate * (-.1) ? _deckScale -= .1 : _deckScale,
-    ).animate(CurvedAnimation(parent: _deckAnimationController!, curve: Curves.easeInBack));
+      end: _deckScale > _cardsToTranslate * (-.1)
+          ? _deckScale -= .1
+          : _deckScale,
+    ).animate(CurvedAnimation(
+        parent: _deckAnimationController!, curve: Curves.easeInBack));
   }
 
   void animateCardOnSwipeStartFeedback() {
     if (isAnimationControllerBusy(_cardAnimationController)) return;
     initCardAnimationParameters();
     final dxFeedback =
-        (_swipeCardKey!.currentContext!.findRenderObject() as RenderBox).size.width / 25;
+        (_swipeCardKey!.currentContext!.findRenderObject() as RenderBox)
+                .size
+                .width /
+            25;
     _initCardAnimation(150, Offset(-dxFeedback, 0.0), Curves.linear);
     _cardAnimation.addListener(updateCardPositionAndRotation);
     _cardAnimationController!.forward();
@@ -685,7 +711,8 @@ class _SwipeCardAnimationMetrics {
         2 * currentCardPosition!.dx + targetOffset.dx,
         2 * currentCardPosition!.dy + targetOffset.dy);
     _initCardAnimation(500, targetPosition, Curves.linear);
-    _cardAnimation.addStatusListener(statusListener as void Function(AnimationStatus));
+    _cardAnimation
+        .addStatusListener(statusListener as void Function(AnimationStatus));
     _cardAnimation.addListener(updateCardPositionAndRotation);
     _cardAnimationController!.forward();
   }
@@ -751,13 +778,15 @@ class _SwipeCardAnimationMetrics {
           controller?.status == AnimationStatus.reverse);
 
   bool isCardInsideEdges(double cardWidth) {
-    return currentCardPosition!.dx < 0.4 * cardWidth && currentCardPosition!.dx > -0.4 * cardWidth;
+    return currentCardPosition!.dx < 0.4 * cardWidth &&
+        currentCardPosition!.dx > -0.4 * cardWidth;
   }
 
   double _calcAngle(Offset pos) => _cardAngle = pos.dx * 0.003;
 
   Offset _calcPosition(Offset currentPosition, Offset delta) =>
-      currentCardPosition = Offset(currentPosition.dx + delta.dx, currentPosition.dy + delta.dy);
+      currentCardPosition =
+          Offset(currentPosition.dx + delta.dx, currentPosition.dy + delta.dy);
 
   void animationsDispose() {
     if (_cardAnimationController?.status == AnimationStatus.forward ||
